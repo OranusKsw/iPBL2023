@@ -3,7 +3,7 @@ import pandas as pd
 import sys
 
 #For servo motor
-from gpiozero import Servo
+from gpiozero import Servo, Pin
 import time
 from gpiozero.pins.pigpio import PiGPIOFactory
 
@@ -20,6 +20,8 @@ recon_status = False #intialize status
 open_the_door = False #intialize status
 counter = 0 #intialize check time
 PIN = 12 # servo pin TODO for testing only, delete after
+factory = PiGPIOFactory
+servo = Servo(PIN, pin_factory=factory, min_pulse_width=0.5 / 1000, max_pulse_width=2.5 / 1000)
 
 while True: #Start checking
     input_data = str(input("Please scan your id ")) #Ask for input
@@ -34,11 +36,6 @@ while True: #Start checking
             print(f"You are "+selected_row['Name']) #indicate recognition data to user
 
             #triggering motor coding (This does to be done by connecting raspberrypi and servomotor)
-
-            factory = PiGPIOFactory
-
-            servo = Servo(PIN, pin_factory=factory, min_pulse_width=0.5/1000, max_pulse_width=2.5/1000)
-
             print("Opening")
             servo.min()
             
@@ -46,6 +43,7 @@ while True: #Start checking
             print("Closing")
             servo.max()
             print("Finished")
+            break
 
 
             #2nd draft
@@ -72,18 +70,18 @@ while True: #Start checking
             # pwm.ChangeDutyCycle(2.5)
             sys.exit() #terminate all operation
 
-         if not counter < max(df.index):
+         if not counter < max(df.index): #condition when checking time is more than maximum row in database
             print("Database doesn't have your info")
-            add_name = str(input("Enter your name: "))
+            add_name = str(input("Enter your name: ")) #asking for new data
             add_No = str(input("Enter your No: "))
-            new_data = pd.DataFrame({'Name': [add_name], 'No': [add_No], 'Score': [10]})
-            df = pd.concat([df, new_data], ignore_index=True)
-            # excel_file_path_new = 'C:/Users/COJ/PycharmProjects/trashinfo/info_data.xlsx'
-            df.to_excel(excel_file_path_old, index=False)
-            print(df)
-            sys.exit()
+            new_data = pd.DataFrame({'Name': [add_name], 'No': [add_No], 'Score': [10]}) #turn new data for dataframe
+            df = pd.concat([df, new_data], ignore_index=True) #merge new dataframe to existed dataframe
 
-         counter += 1
+            df.to_excel(excel_file_path_old, index=False) #resave dataframe into excel
+            print(df) #show new dataframe
+            sys.exit() #terminate
+
+         counter += 1 #count cheking time
 
 
 
