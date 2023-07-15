@@ -1,49 +1,62 @@
-#!/usr/bin/env python
-# coding: utf-8
+#import module for coding
 
-# In[ ]:
-
-
-import cv2
-import numpy as np
-#import imutils
+#For QR Code database
 import pandas as pd
-import cvlib as cv
-from cvlib.object_detection import draw_bbox
- 
-# Create a VideoCapture object and read from input file
-# If the input is the camera, pass 0 instead of the video file name
-cap = cv2.VideoCapture(0)
-# Check if camera opened successfully
-if (cap.isOpened()== False): 
-  print("Error opening video stream or file")
-i = 0
-# Read until video is completed
-while cap.isOpened():
-  # Capture frame-by-frame
-  ret, frame = cap.read()
-  if frame is None:
-    print('frame is none')
-    break
-    # Saving the frames with certain namec
-  if ret == True:
-    #laplacian_var = cv2.Laplacian(frame, cv2.CV_64F).var()
-    box, label, count = cv.detect_common_objects(frame)
-    output = draw_bbox(frame, box, label, count)
-    #output = cv2.cvtColor(output,cv2.COLOR_BGR2RGB)
-    print(label)
-    if cv2.waitKey(25) & 0xFF == ord('q'):
-      break
+import sys
 
- 
-  # Break the loop
-  else: 
-    break
-  cv2.imshow("test", output)
- 
-# When everything done, release the video capture object
-cap.release()
- 
-# Closes all the frames
-cv2.destroyAllWindows()
+#For servo motor
+from gpiozero import Servo
+import time
+from gpiozero.pins.pigpio import PiGPIOFactory
 
+
+#database
+
+excel_file_path_old = '/home/oranus/iPBL2023/info_data.xlsx' #locate path to variable
+df = pd.read_excel(excel_file_path_old) #load database from excel turn into df
+
+recon_status = False #intialize status
+open_the_door = False #intialize status
+counter = 0 #intialize check time
+
+while True: #Start checking
+    input_data = str(input("Please scan your id ")) #Ask for input
+
+    for index,row in df.iterrows(): #Select each row and column in dataframe for checking
+         number=str(row['No']) # Locate the number that gonna check
+
+         if input_data == number:  #find the matching ID card
+            selected_row=row #Locate the matching row
+            recon_status = True #update the status
+            open_the_door = True #update the status
+            print("The door is opening") #indicate condition case to user
+            print(f"You are "+selected_row['Name']) #indicate recognition data to user
+
+            #triggering motor coding (This does to be done by connecting raspberrypi and servomotor)
+
+            factory = PiGPIOFactory()
+
+            servo = Servo(12, min_pulse_width=0.5/1000, max_pulse_width=1.5/1000, pin_factory=factory)
+            print("Opening")
+            servo.min()
+            time.sleep(15)
+
+            #todo recieve the signal from the camera to close the gate
+
+            print("Closing")
+            servo.max()
+            time.sleep(5)
+
+            sys.exit() #terminate all operation
+
+         if not counter < max(df.index):
+            print("Database doesn't have your info")
+            add_name = str(input("Enter your name: "))
+            add_No = str(input("Enter your No: "))
+            new_data = pd.DataFrame({'Name': [add_name], 'No': [add_No], 'Score': [10]})
+            df = pd.concat([df, new_data], ignore_index=True)
+            df.to_excel(excel_file_path_old, index=False)
+            print(df)
+            sys.exit()
+
+         counter += 1
